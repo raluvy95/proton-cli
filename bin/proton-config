@@ -140,7 +140,7 @@ def main():
             for files in os.listdir(HOME + "/.local/bin"):
                 if files in ["proton-cli", "proton-config"]:
                     os.remove(os.path.join(HOME, ".local", "bin", files))
-            confi = ask("Do you also want to remove all data?")
+            confi = ask("Do you also want to remove all data?\nTHIS ALSO INCLUDES SAVED DATA IN GAMES IF YOU HAVE USED IT.\n(Please backup from ~/.local/share/proton-cli/proton if you want to remove)")
             if not confi:
                 print("Sucessfully uninstalled!")
             else:

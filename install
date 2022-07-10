@@ -1,0 +1,173 @@
+#!/usr/bin/python3
+
+import json
+import sys
+import os
+from lib.simple_term_menu import TerminalMenu
+from urllib import request
+import shutil
+
+HOME = os.path.expanduser("~")
+
+
+def ask(question: str) -> bool:
+    i = input(question + " [Y/N] ")
+    return i.lower() in ["yes", "y"]
+
+
+def check_version():
+    ver = sys.version_info
+    if ver[0] < 3:
+        print("Python 2 is not supported.")
+        sys.exit(1)
+    elif ver[1] < 8:
+        print("Python 3.7 and under are not supported.\nIf your distro only offers older version of python please use pyenv")
+        sys.exit(1)
+
+
+def create_config_if_not_exist(j=None):
+    config_path = HOME + "/.config/proton-cli"
+    if not os.path.isdir(config_path):
+        os.makedirs(config_path)
+    if not os.path.isfile(config_path + "/config.json"):
+        with open(config_path + "/config.json", "w") as f:
+            JSON = {
+                "RPC": {
+                    "enable": False,
+                    "path": None
+                },
+                "PROTON_PATH": None,
+                "ARGUMENTS": []
+            } if not j else j
+            json.dump(JSON, f)
+            f.close()
+
+def create_local_if_not_exists():
+    local_path = HOME + "/.local/share/proton-cli"
+    if not os.path.isdir(local_path):
+        os.makedirs(local_path)
+    if not os.path.isdir(local_path + "/proton"):
+        os.makedirs(local_path + "/proton")
+
+
+def get_config():
+    create_config_if_not_exist()
+    with open(HOME + "/.config/proton-cli/config.json") as f:
+        j = json.load(f)
+        f.close()
+        return j
+
+
+def get_proton_dirs():
+    steam_path = HOME + "/.steam/steam/steamapps/common/"
+    if not os.path.exists(steam_path):
+        print("Looks like you don't have Steam installed. Please install it first")
+        sys.exit(1)
+    list_dir = os.listdir(steam_path)
+    return [l for l in list_dir if l.startswith("Proton")]
+
+
+def select_proton_version():
+
+    def write(ver):
+        config = get_config()
+        config["PROTON_PATH"] = os.path.join(
+            HOME, ".steam/steam/steamapps/common", ver, "proton")
+        with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+            json.dump(config, f)
+            f.close()
+
+    li = get_proton_dirs()
+    if len(li) < 1:
+        print("Looks like there's no Proton installed. Please install it first.")
+        sys.exit(1)
+    elif len(li) == 1:
+        i = ask(f"Select {li[0]}?")
+        if not i:
+            print("Cancelled")
+            sys.exit(0)
+        else:
+            write(li[0])
+    else:
+        terminal_menu = TerminalMenu(
+            li, title="Please select Proton version installed to use as CLI:")
+        menu_entry_index = terminal_menu.show()
+        if menu_entry_index is None:
+            print("Cancelled")
+            sys.exit(0)
+        print(f"You have selected {li[menu_entry_index]}!")
+        write(li[menu_entry_index])
+
+
+def enable_RPC():
+    create_local_if_not_exists()
+    h = ask("Do you want to enable support for Discord Rich Presence?")
+    if not h:
+        return
+    else:
+        local_path = HOME + "/.local/share/proton-cli"
+        exe = os.path.join(local_path, "winediscordipcbridge.exe")
+        print("Downloading winediscordipcbridge.exe...")
+        request.urlretrieve("https://github.com/0e4ef622/wine-discord-ipc-bridge/releases/download/v0.0.2/winediscordipcbridge.exe", exe)
+        config = get_config()
+        config["RPC"] = {
+            "enable": True,
+            "path": exe
+        }
+        with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+            json.dump(config, f)
+            f.close()
+        print("Done!")
+
+def install():
+    dest_bins = os.path.join(HOME, ".local", "bin")
+    print(f"Copying binary files to {dest_bins}...")
+    bins = os.path.join(os.getcwd(), "bin")
+    if not os.path.isdir(bins):
+        print("Failed to install: Cannot find bin directory.")
+    for files in os.listdir(bins):
+        shutil.copy2(os.path.join(bins, files), dest_bins)
+    print("Done!")
+
+def check_path():
+    p = os.environ["PATH"].split(os.pathsep)
+    if not f"{HOME}/.local/bin" in p:
+        confirm = ask(f"Do you want to add {HOME}/.local/bin to the PATH env? This will allow to use commands in Terminal.")
+        if not confirm:
+            print("Ok. Don't forget to set the PATH manually!")
+            return
+        else:
+            os.environ["PATH"] += os.pathsep + f"{HOME}/.local/bin"
+            print(f"Added {HOME}/.local/bin to the PATH env!")
+
+if __name__ == "__main__":
+    try:
+        arg = sys.argv[1]
+    except IndexError:
+        arg = ''
+    if len(sys.argv[1:]) < 1:
+        check_version()
+        select_proton_version()
+        enable_RPC()
+        install()
+        check_path()
+        print(f"""Sucessfully installed! You can now use the following commands:
+
+proton-cli     - Run Proton in a terminal
+proton-config  - Change settings for Proton CLI!
+
+The configuration file can be found in: {HOME}/.config/proton-cli/config.json
+The binary files can be found in: {HOME}/.local/bin
+The local files can be found in: {HOME}/.local/share/proton-cli
+
+To uninstall this app simply use proton-config uninstall
+""")
+    elif arg == "copy":
+        install()
+    else:
+        print("""
+Usage: ./install [SUBCOMMAND]
+
+Avaliable subcommands:
+    copy  -  Only copy updated files to ~/.local/bin
+""")

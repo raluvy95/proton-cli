@@ -1,0 +1,162 @@
+#!/usr/bin/python3
+# PROTON CONFIG
+
+import os
+import shutil
+import sys
+import json
+from urllib import request
+
+HOME = os.path.expanduser("~")
+
+ARGS = sys.argv[1:]
+
+
+class Style:
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+
+def help():
+    print("""
+Usage: proton-config <SUBCOMMAND> [VALUE]
+
+Avaliable subcommands:
+    rpc-enable <yes/no> - Enable support for Discord Rich Persence
+    rpc-path   <PATH>   - Set PATH for exe to handle IPC Discord Rich Persence
+    version             - Show current version
+    path       <PATH>   - Set Proton PATH
+    list                - Show list of Proton installed
+    show                - Show the contents in config.json
+    uninstall           - Uninstall Proton CLI helper
+""")
+
+
+def get_config():
+    with open(HOME + "/.config/proton-cli/config.json") as f:
+        j = json.load(f)
+        f.close()
+        return j
+
+def ask(question: str) -> bool:
+    i = input(question + " [Y/N] ")
+    return i.lower() in ["yes", "y"]
+
+def create_local_if_not_exists():
+    local_path = HOME + "/.local/share/proton-cli"
+    if not os.path.isdir(local_path):
+        os.makedirs(local_path)
+    if not os.path.isdir(local_path + "/proton"):
+        os.makedirs(local_path + "/proton")
+
+
+def safe_path(path: str) -> str:
+    return os.path.normpath(path).replace(' ', '\ ')
+
+
+def boolean(value: str) -> bool:
+    if value.lower() in ["yes", "true", "y"]:
+        return True
+    elif value.lower() in ["no", "false", "n"]:
+        return False
+    else:
+        help()
+        sys.exit(1)
+
+
+def get_proton_dirs():
+    steam_path = HOME + "/.steam/steam/steamapps/common/"
+    if not os.path.exists(steam_path):
+        print("Looks like you don't have Steam installed. Please install it first")
+        sys.exit(1)
+    list_dir = os.listdir(steam_path)
+    return [f"{Style.BOLD}{l}{Style.END} - {steam_path}{l}/proton" for l in list_dir if l.startswith("Proton")]
+
+
+def main():
+    if ARGS[0] == "rpc-enable":
+        if not ARGS[1]:
+            help()
+            return
+        else:
+            config = get_config()
+            arg = boolean(ARGS[1])
+            local_path = HOME + "/.local/share/proton-cli"
+            exe = os.path.join(local_path, "winediscordipcbridge.exe")
+            if arg is True and not os.path.isfile(exe):
+                create_local_if_not_exists()
+                print("Downloading winediscordipcbridge.exe...")
+                request.urlretrieve(
+                    "https://github.com/0e4ef622/wine-discord-ipc-bridge/releases/download/v0.0.2/winediscordipcbridge.exe", exe)
+                print("Downloaded!")
+                config["RPC"]["path"] = exe
+            with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+                config["RPC"]["enable"] = arg
+                json.dump(config, f)
+                f.close()
+
+    elif ARGS[0] == "rpc-path":
+        if not ARGS[1]:
+            help()
+            return
+        else:
+            config = get_config()
+            with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+                config["RPC"]["path"] = " ".join(ARGS[1:])
+                json.dump(config, f)
+                f.close()
+
+    elif ARGS[0] == "version":
+        print("Version 0.1.0")
+
+    elif ARGS[0] == "path":
+        if not ARGS[1]:
+            help()
+            return
+        else:
+            config = get_config()
+            with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+                config["PROTON_PATH"] = " ".join(ARGS[1:])
+                json.dump(config, f)
+                f.close()
+
+    elif ARGS[0] == "list":
+        dirs = get_proton_dirs()
+        print("\n".join(dirs))
+
+    elif ARGS[0] == "show":
+        config = get_config()
+        print(f"{HOME}/.config/proton-cli/config.json")
+        print(json.dumps(config, indent=2, sort_keys=True))
+
+    elif ARGS[0] == "uninstall":
+        confirm = ask("Are you sure you want to remove the helper?\nThis will remove commands we copied.")
+        if not confirm:
+            print("Cancelled")
+            return
+        else:
+            print("Ok, processing...")
+            for files in os.listdir(HOME + "/.local/bin"):
+                if files in ["proton-cli", "proton-config"]:
+                    os.remove(os.path.join(HOME, ".local", "bin", files))
+            confi = ask("Do you also want to remove all data?")
+            if not confi:
+                print("Sucessfully uninstalled!")
+            else:
+                config_path = HOME + "/.config/proton-cli"
+                local_path = HOME + "/.local/share/proton-cli"
+                shutil.rmtree(local_path)
+                shutil.rmtree(config_path)
+                print("Sucessfully uninstalled!")
+        
+    else:
+        help()
+        return
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except IndexError:
+        help()

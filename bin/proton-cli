@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+# PROTON CLI
+
+import json
+import os
+import sys
+
+HOME = os.path.expanduser("~")
+
+def get_config():
+    with open(HOME + "/.config/proton-cli/config.json") as f:
+        j = json.load(f)
+        f.close()
+        return j
+
+def safe_path(path: str) -> str:
+    return os.path.normpath(path).replace(' ', '\ ')
+
+CONFIG = get_config()
+
+# Required enviorments for Proton to run in CLI
+ENV = {
+    "STEAM_COMPAT_CLIENT_INSTALL_PATH": safe_path(f"{HOME}/.local/share/Steam"),
+    "STEAM_COMPAT_DATA_PATH": safe_path(f"{HOME}/.local/share/proton-cli/proton"),
+}
+
+
+# Enviorments for enabled Discord RPC
+if CONFIG["RPC"]["enable"]:
+    ENV["PROTON_REMOTE_DEBUG_CMD"] = safe_path(CONFIG["RPC"]["path"])
+    ENV["PRESSURE_VESSEL_FILESYSTEMS_RW"] = "/run/user/1000/discord-ipc-0"
+
+command_line = ''
+
+for k,v in ENV.items():
+    command_line += f"{k}={v} "
+
+for it in CONFIG["ARGUMENTS"]:
+    command_line += f"{it} "
+
+command_line += f'{safe_path(CONFIG["PROTON_PATH"])} run {" ".join(sys.argv[1:])}'
+os.system(command_line)

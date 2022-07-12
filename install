@@ -43,6 +43,7 @@ def create_config_if_not_exist(j=None):
             json.dump(JSON, f)
             f.close()
 
+
 def create_local_if_not_exists():
     local_path = HOME + "/.local/share/proton-cli"
     if not os.path.isdir(local_path):
@@ -109,7 +110,8 @@ def enable_RPC():
         local_path = HOME + "/.local/share/proton-cli"
         exe = os.path.join(local_path, "winediscordipcbridge.exe")
         print("Downloading winediscordipcbridge.exe...")
-        request.urlretrieve("https://github.com/0e4ef622/wine-discord-ipc-bridge/releases/download/v0.0.2/winediscordipcbridge.exe", exe)
+        request.urlretrieve(
+            "https://github.com/0e4ef622/wine-discord-ipc-bridge/releases/download/v0.0.2/winediscordipcbridge.exe", exe)
         config = get_config()
         config["RPC"] = {
             "enable": True,
@@ -120,10 +122,12 @@ def enable_RPC():
             f.close()
         print("Done!")
 
+
 def get_latest_commit():
     b = subprocess.check_output(["git", "log", "--pretty=format:'%h'", "-1"])
     s = b.decode().replace("'", '')
     return s
+
 
 def install():
     dest_bins = os.path.join(HOME, ".local", "bin")
@@ -135,10 +139,12 @@ def install():
         shutil.copy2(os.path.join(bins, files), dest_bins)
     print("Done!")
 
+
 def check_path():
     p = os.environ["PATH"].split(os.pathsep)
     if not f"{HOME}/.local/bin" in p:
-        confirm = ask(f"Do you want to add {HOME}/.local/bin to the PATH env? This will allow to use commands in Terminal.")
+        confirm = ask(
+            f"Do you want to add {HOME}/.local/bin to the PATH env? This will allow to use commands in Terminal.")
         if not confirm:
             print("Ok. Don't forget to set the PATH manually!")
             return
@@ -146,12 +152,14 @@ def check_path():
             os.environ["PATH"] += os.pathsep + f"{HOME}/.local/bin"
             print(f"Added {HOME}/.local/bin to the PATH env!")
 
+
 def write_to_version():
     local_path = HOME + "/.local/share/proton-cli"
     version = get_latest_commit()
     with open(os.path.join(local_path, "version"), "w") as f:
         f.write(version)
         f.close()
+
 
 if __name__ == "__main__":
     try:

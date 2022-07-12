@@ -56,10 +56,6 @@ def create_local_if_not_exists():
         os.makedirs(local_path + "/proton")
 
 
-def safe_path(path: str) -> str:
-    return os.path.normpath(path).replace(' ', '\ ')
-
-
 def boolean(value: str) -> bool:
     if value.lower() in ["yes", "true", "y"]:
         return True

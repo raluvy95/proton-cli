@@ -6,6 +6,7 @@ import os
 from lib.simple_term_menu import TerminalMenu
 from urllib import request
 import shutil
+import subprocess
 
 HOME = os.path.expanduser("~")
 
@@ -119,6 +120,11 @@ def enable_RPC():
             f.close()
         print("Done!")
 
+def get_latest_commit():
+    b = subprocess.check_output(["git", "log", "--pretty=format:'%h'", "-1"])
+    s = b.decode().replace("'", '')
+    return s
+
 def install():
     dest_bins = os.path.join(HOME, ".local", "bin")
     print(f"Copying binary files to {dest_bins}...")
@@ -140,6 +146,13 @@ def check_path():
             os.environ["PATH"] += os.pathsep + f"{HOME}/.local/bin"
             print(f"Added {HOME}/.local/bin to the PATH env!")
 
+def write_to_version():
+    local_path = HOME + "/.local/share/proton-cli"
+    version = get_latest_commit()
+    with open(os.path.join(local_path, "version"), "w") as f:
+        f.write(version)
+        f.close()
+
 if __name__ == "__main__":
     try:
         arg = sys.argv[1]
@@ -150,6 +163,7 @@ if __name__ == "__main__":
         select_proton_version()
         enable_RPC()
         install()
+        write_to_version()
         check_path()
         print(f"""Sucessfully installed! You can now use the following commands:
 
@@ -164,6 +178,7 @@ To uninstall this app simply use proton-config uninstall
 """)
     elif arg == "copy":
         install()
+        write_to_version()
     else:
         print("""
 Usage: ./install [SUBCOMMAND]

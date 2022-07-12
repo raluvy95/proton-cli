@@ -7,14 +7,17 @@ import sys
 
 HOME = os.path.expanduser("~")
 
+
 def get_config():
     with open(HOME + "/.config/proton-cli/config.json") as f:
         j = json.load(f)
         f.close()
         return j
 
+
 def safe_path(path: str) -> str:
     return os.path.normpath(path).replace(' ', '\ ')
+
 
 CONFIG = get_config()
 
@@ -32,7 +35,7 @@ if CONFIG["RPC"]["enable"]:
 
 command_line = ''
 
-for k,v in ENV.items():
+for k, v in ENV.items():
     command_line += f"{k}={v} "
 
 for it in CONFIG["ARGUMENTS"]:

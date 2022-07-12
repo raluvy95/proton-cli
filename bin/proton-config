@@ -11,6 +11,8 @@ HOME = os.path.expanduser("~")
 
 ARGS = sys.argv[1:]
 
+VERSION = "0.1.0"
+
 
 class Style:
     BOLD = '\033[1m'
@@ -30,6 +32,7 @@ Avaliable subcommands:
     list                - Show list of Proton installed
     show                - Show the contents in config.json
     uninstall           - Uninstall Proton CLI helper
+    explorer            - Open driver C: in external file manager
 """)
 
 
@@ -39,9 +42,11 @@ def get_config():
         f.close()
         return j
 
+
 def ask(question: str) -> bool:
     i = input(question + " [Y/N] ")
     return i.lower() in ["yes", "y"]
+
 
 def create_local_if_not_exists():
     local_path = HOME + "/.local/share/proton-cli"
@@ -68,7 +73,7 @@ def boolean(value: str) -> bool:
 def get_proton_dirs():
     steam_path = HOME + "/.steam/steam/steamapps/common/"
     if not os.path.exists(steam_path):
-        print("Looks like you don't have Steam installed. Please install it first")
+        print("Looks like you don't have Steam client installed. Please install it first")
         sys.exit(1)
     list_dir = os.listdir(steam_path)
     return [f"{Style.BOLD}{l}{Style.END} - {steam_path}{l}/proton" for l in list_dir if l.startswith("Proton")]
@@ -95,6 +100,7 @@ def main():
                 config["RPC"]["enable"] = arg
                 json.dump(config, f)
                 f.close()
+            print('RPC support enabled!' if arg else "RPC support disabled!")
 
     elif ARGS[0] == "rpc-path":
         if not ARGS[1]:
@@ -106,9 +112,18 @@ def main():
                 config["RPC"]["path"] = " ".join(ARGS[1:])
                 json.dump(config, f)
                 f.close()
+            print("RPC exe path has been changed!")
 
     elif ARGS[0] == "version":
-        print("Version 0.1.0")
+        local_path = HOME + "/.local/share/proton-cli"
+        ver = os.path.join(local_path, "version")
+        if os.path.exists(ver):
+            with open(ver) as f:
+                commit = f.read()
+                f.close()
+                print(f"Version {VERSION} (Commit: {commit})")
+        else:
+            print(f"Version {VERSION}")
 
     elif ARGS[0] == "path":
         if not ARGS[1]:
@@ -131,13 +146,14 @@ def main():
         print(json.dumps(config, indent=2, sort_keys=True))
 
     elif ARGS[0] == "uninstall":
-        confirm = ask("Are you sure you want to remove the helper?\nThis will remove commands we copied.")
+        confirm = ask(
+            "Are you sure you want to remove the helper?\nThis will remove commands we copied.")
         if not confirm:
             print("Cancelled")
             return
         else:
             print("Ok, processing...")
-            
+
             for file in ["proton-cli", "proton-config"]:
                 try:
                     os.remove(os.path.join(HOME, ".local", "bin", file))
@@ -145,14 +161,17 @@ def main():
                     continue
             confi = ask("Do you also want to remove all data?\nTHIS ALSO INCLUDES SAVED DATA IN GAMES IF YOU HAVE USED IT.\n(Please backup from ~/.local/share/proton-cli/proton if you want to remove)")
             if not confi:
-                print("Sucessfully uninstalled!")
+                print("Ok I will keep all data. Sucessfully uninstalled!")
             else:
                 config_path = HOME + "/.config/proton-cli"
                 local_path = HOME + "/.local/share/proton-cli"
                 shutil.rmtree(local_path)
                 shutil.rmtree(config_path)
-                print("Sucessfully uninstalled!")
-        
+                print("Sucessfully uninstalled and deleted all data!")
+    elif ARGS[0] == "explorer":
+        local_path = HOME + "/.local/share/proton-cli/proton/pfx/drive_c"
+        os.system(f"xdg-open file:///{local_path}")
+
     else:
         help()
         return

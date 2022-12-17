@@ -68,11 +68,15 @@ def boolean(value: str) -> bool:
 
 def get_proton_dirs():
     steam_path = HOME + "/.steam/steam/steamapps/common/"
+    steam_compartibility_path = HOME + "/.local/share/Steam/compatibilitytools.d/"
     if not os.path.exists(steam_path):
         print("Looks like you don't have Steam client installed. Please install it first")
         sys.exit(1)
     list_dir = os.listdir(steam_path)
-    return [f"{Style.BOLD}{l}{Style.END} - {steam_path}{l}/proton" for l in list_dir if l.startswith("Proton")]
+    list_comp_dir = os.listdir(steam_compartibility_path)
+    steam_arr = [f"{Style.BOLD}{l}{Style.END} - {steam_path}{l}/proton" for l in list_dir if "proton" in l.lower()]
+    comp_arr = [f"{Style.BOLD}{l}{Style.END} - {steam_compartibility_path}{l}/proton" for l in list_comp_dir if "proton" in l.lower()]
+    return steam_arr + comp_arr
 
 
 def main():

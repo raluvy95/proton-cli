@@ -3,17 +3,51 @@
 import json
 import sys
 import os
-from lib.simple_term_menu import TerminalMenu
 from urllib import request
 import shutil
 import subprocess
 
 HOME = os.path.expanduser("~")
-
+STEAM_PATH = HOME + "/.steam/steam/steamapps/common/"
+IS_FLATPAK = False
 
 def ask(question: str) -> bool:
     i = input(question + " [Y/N] ")
     return i.lower() in ["yes", "y"]
+
+def steam_source():
+    global STEAM_PATH
+    global IS_FLATPAK
+    steam_system_path = HOME + "/.local/share/Steam/"
+    steam_flatpak_path = HOME + "/.var/app/com.valvesoftware.Steam/.local/share/Steam/"
+    steam_flatpak_apps_path = steam_flatpak_path + "steamapps/common/"
+    if os.path.isdir(steam_flatpak_path) and os.path.isdir(steam_system_path):
+        print("You have steam client installed on both system and flatpak!")
+        print("Which steam client do you want to use for?")
+        confirm = ask("Y - choose for system, N - choose for flatpak")
+        if not confirm:
+            STEAM_PATH = steam_flatpak_apps_path
+            IS_FLATPAK = True
+            print("Chosen flatpak!")
+        else:
+            print("Chosen system!")
+    elif not os.path.isdir(steam_system_path):
+        STEAM_PATH = steam_flatpak_apps_path
+        IS_FLATPAK = True
+    elif not os.path.isdir(steam_system_path) and not os.path.isdir(steam_flatpak_path):
+        print("You don't have Steam client installed! Please install first.")
+        sys.exit(1)
+
+
+def proton_sources():
+    global IS_FLATPAK
+    steam_arr = [{"name": l, "path": STEAM_PATH} for l in os.listdir(STEAM_PATH) if "proton" in l.lower()]
+    if IS_FLATPAK:
+        steam_compartibility_path = HOME + "/.var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d/"
+    else:
+        steam_compartibility_path = HOME + "/.local/share/Steam/compatibilitytools.d/"
+    comp_arr = [{"name": l, "path": steam_compartibility_path} for l in os.listdir(steam_compartibility_path) if "proton" in l.lower()]
+    return steam_arr + comp_arr
 
 
 def check_version():
@@ -60,26 +94,19 @@ def get_config():
         return j
 
 
-def get_proton_dirs():
-    steam_path = HOME + "/.steam/steam/steamapps/common/"
-    if not os.path.exists(steam_path):
-        print("Looks like you don't have Steam installed. Please install it first")
-        sys.exit(1)
-    list_dir = os.listdir(steam_path)
-    return [l for l in list_dir if l.startswith("Proton")]
-
-
 def select_proton_version():
-
     def write(ver):
+        name = ver["name"]
+        path = ver["path"]
+        path = path + name + "/proton"
         config = get_config()
         config["PROTON_PATH"] = os.path.join(
-            HOME, ".steam/steam/steamapps/common", ver, "proton")
+            HOME, path, ver, "proton")
         with open(HOME + "/.config/proton-cli/config.json", "w") as f:
             json.dump(config, f)
             f.close()
 
-    li = get_proton_dirs()
+    li = proton_sources()
     if len(li) < 1:
         print("Looks like there's no Proton installed. Please install it first.")
         sys.exit(1)
@@ -91,14 +118,24 @@ def select_proton_version():
         else:
             write(li[0])
     else:
-        terminal_menu = TerminalMenu(
-            li, title="Please select Proton version installed to use as CLI:")
-        menu_entry_index = terminal_menu.show()
-        if menu_entry_index is None:
-            print("Cancelled")
-            sys.exit(0)
-        print(f"You have selected {li[menu_entry_index]}!")
-        write(li[menu_entry_index])
+        fil = [f"{l['name']} from {l['path']}" for l in li]
+        index = 0
+        for i in fil:
+            print(f"{index} - {fil[index]}")
+            index+=1
+        print("Detected multiple Proton installers. Type the following index to select Proton you want to use")
+        while True:
+            try:
+                num = input("> ")
+                realnum = int(num)
+                chosen_proton = li[realnum]
+                print(f"You have selected {chosen_proton['name']}!")
+                write(chosen_proton)
+                break
+            except KeyboardInterrupt:
+                sys.exit()
+            except:
+                continue
 
 
 def enable_RPC():
@@ -135,6 +172,7 @@ def install():
     bins = os.path.join(os.getcwd(), "bin")
     if not os.path.isdir(bins):
         print("Failed to install: Cannot find bin directory.")
+        sys.exit(2)
     for files in os.listdir(bins):
         shutil.copy2(os.path.join(bins, files), dest_bins)
     print("Done!")
@@ -167,6 +205,7 @@ if __name__ == "__main__":
     except IndexError:
         arg = ''
     if len(sys.argv[1:]) < 1:
+        steam_source()
         check_version()
         select_proton_version()
         enable_RPC()

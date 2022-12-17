@@ -7,7 +7,6 @@ import sys
 
 HOME = os.path.expanduser("~")
 
-
 def get_config():
     with open(HOME + "/.config/proton-cli/config.json") as f:
         j = json.load(f)
@@ -21,10 +20,15 @@ def safe_path(path: str) -> str:
 
 CONFIG = get_config()
 
+try:
+    PROTON_PREFIX = CONFIG["PROTON_PREFIX"]
+except:
+    PROTON_PREFIX = HOME + "/.local/share/proton-cli/proton"
+
 # Required enviorments for Proton to run in CLI
 ENV = {
     "STEAM_COMPAT_CLIENT_INSTALL_PATH": safe_path(f"{HOME}/.local/share/Steam"),
-    "STEAM_COMPAT_DATA_PATH": safe_path(f"{HOME}/.local/share/proton-cli/proton"),
+    "STEAM_COMPAT_DATA_PATH": safe_path(PROTON_PREFIX),
 }
 
 
@@ -42,4 +46,4 @@ for it in CONFIG["ARGUMENTS"]:
     command_line += f"{it} "
 
 command_line += f'{safe_path(CONFIG["PROTON_PATH"])} run {" ".join(sys.argv[1:])}'
-os.system(command_line)
+os.system(safe_path(command_line))

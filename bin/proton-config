@@ -8,6 +8,8 @@ import json
 from urllib import request
 
 HOME = os.path.expanduser("~")
+STEAM_PATH = HOME + "/.steam/steam/steamapps/common/"
+IS_FLATPAK = False
 
 ARGS = sys.argv[1:]
 
@@ -29,11 +31,35 @@ Avaliable subcommands:
     rpc-path   <PATH>   - Set PATH for exe to handle IPC Discord Rich Persence
     version             - Show current version
     path       <PATH>   - Set Proton PATH
+    prefix     <PATH>   - Set Proton's prefix PATH
     list                - Show list of Proton installed
     show                - Show the contents in config.json
     uninstall           - Uninstall Proton CLI helper
     explorer            - Open driver C: in external file manager
 """)
+
+def steam_source():
+    global STEAM_PATH
+    global IS_FLATPAK
+    steam_system_path = HOME + "/.local/share/Steam/"
+    steam_flatpak_path = HOME + "/.var/app/com.valvesoftware.Steam/.local/share/Steam/"
+    steam_flatpak_apps_path = steam_flatpak_path + "steamapps/common/"
+    if os.path.isdir(steam_flatpak_path) and os.path.isdir(steam_system_path):
+        print("You have steam client installed on both system and flatpak!")
+        print("Which steam client do you want to use for?")
+        confirm = ask("Y - choose for system, N - choose for flatpak")
+        if not confirm:
+            STEAM_PATH = steam_flatpak_apps_path
+            IS_FLATPAK = True
+            print("Chosen flatpak!")
+        else:
+            print("Chosen system!")
+    elif not os.path.isdir(steam_system_path):
+        STEAM_PATH = steam_flatpak_apps_path
+        IS_FLATPAK = True
+    elif not os.path.isdir(steam_system_path) and not os.path.isdir(steam_flatpak_path):
+        print("You don't have Steam client installed! Please install first.")
+        sys.exit(1)
 
 
 def get_config():
@@ -65,17 +91,15 @@ def boolean(value: str) -> bool:
         help()
         sys.exit(1)
 
-
-def get_proton_dirs():
-    steam_path = HOME + "/.steam/steam/steamapps/common/"
-    steam_compartibility_path = HOME + "/.local/share/Steam/compatibilitytools.d/"
-    if not os.path.exists(steam_path):
-        print("Looks like you don't have Steam client installed. Please install it first")
-        sys.exit(1)
-    list_dir = os.listdir(steam_path)
-    list_comp_dir = os.listdir(steam_compartibility_path)
-    steam_arr = [f"{Style.BOLD}{l}{Style.END} - {steam_path}{l}/proton" for l in list_dir if "proton" in l.lower()]
-    comp_arr = [f"{Style.BOLD}{l}{Style.END} - {steam_compartibility_path}{l}/proton" for l in list_comp_dir if "proton" in l.lower()]
+def proton_sources():
+    steam_source()
+    global IS_FLATPAK
+    steam_arr = [{"name": l, "path": STEAM_PATH} for l in os.listdir(STEAM_PATH) if "proton" in l.lower()]
+    if IS_FLATPAK:
+        steam_compartibility_path = HOME + "/.var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d/"
+    else:
+        steam_compartibility_path = HOME + "/.local/share/Steam/compatibilitytools.d/"
+    comp_arr = [{"name": l, "path": steam_compartibility_path} for l in os.listdir(steam_compartibility_path) if "proton" in l.lower()]
     return steam_arr + comp_arr
 
 
@@ -124,6 +148,17 @@ def main():
                 print(f"Version {VERSION} (Commit: {commit})")
         else:
             print(f"Version {VERSION}")
+    
+    elif ARGS[0] == "prefix":
+        if not ARGS[1]:
+            help()
+            return
+        else:
+            config = get_config()
+            with open(HOME + "/.config/proton-cli/config.json", "w") as f:
+                config["PROTON_PREFIX"] = " ".join(ARGS[1:])
+                json.dump(config, f)
+                f.close()
 
     elif ARGS[0] == "path":
         if not ARGS[1]:
@@ -137,8 +172,8 @@ def main():
                 f.close()
 
     elif ARGS[0] == "list":
-        dirs = get_proton_dirs()
-        print("\n".join(dirs))
+        dirs = proton_sources()
+        print("\n".join([f"{Style.BOLD}{i['name']}{Style.END} from {i['path']}" for i in dirs]))
 
     elif ARGS[0] == "show":
         config = get_config()

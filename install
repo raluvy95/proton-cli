@@ -98,10 +98,9 @@ def select_proton_version():
     def write(ver):
         name = ver["name"]
         path = ver["path"]
-        path = path + name + "/proton"
         config = get_config()
         config["PROTON_PATH"] = os.path.join(
-            HOME, path, ver, "proton")
+            HOME, path, name, "proton")
         with open(HOME + "/.config/proton-cli/config.json", "w") as f:
             json.dump(config, f)
             f.close()
@@ -111,7 +110,7 @@ def select_proton_version():
         print("Looks like there's no Proton installed. Please install it first.")
         sys.exit(1)
     elif len(li) == 1:
-        i = ask(f"Select {li[0]}?")
+        i = ask(f"Select {li[0]['name']}?")
         if not i:
             print("Cancelled")
             sys.exit(0)

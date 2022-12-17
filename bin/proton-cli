@@ -45,5 +45,5 @@ for k, v in ENV.items():
 for it in CONFIG["ARGUMENTS"]:
     command_line += f"{it} "
 
-command_line += f'{safe_path(CONFIG["PROTON_PATH"])} run {" ".join(sys.argv[1:])}'
-os.system(safe_path(command_line))
+command_line += f'{safe_path(CONFIG["PROTON_PATH"])} run {safe_path(" ".join(sys.argv[1:]))}'
+os.system(command_line)

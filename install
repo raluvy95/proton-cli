@@ -11,6 +11,17 @@ HOME = os.path.expanduser("~")
 STEAM_PATH = HOME + "/.steam/steam/steamapps/common/"
 IS_FLATPAK = False
 
+class Style:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    END = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def ask(question: str) -> bool:
     i = input(question + " [Y/N] ")
     return i.lower() in ["yes", "y"]
@@ -22,20 +33,20 @@ def steam_source():
     steam_flatpak_path = HOME + "/.var/app/com.valvesoftware.Steam/.local/share/Steam/"
     steam_flatpak_apps_path = steam_flatpak_path + "steamapps/common/"
     if os.path.isdir(steam_flatpak_path) and os.path.isdir(steam_system_path):
-        print("You have steam client installed on both system and flatpak!")
+        print(f"{Style.OKBLUE}You have steam client installed on both system and flatpak!{Style.END}")
         print("Which steam client do you want to use for?")
         confirm = ask("Y - choose for system, N - choose for flatpak")
         if not confirm:
             STEAM_PATH = steam_flatpak_apps_path
             IS_FLATPAK = True
-            print("Chosen flatpak!")
+            print(f"{Style.OKBLUE}Chosen flatpak!{Style.END}")
         else:
-            print("Chosen system!")
+            print(f"{Style.OKBLUE}Chosen system!{Style.END}")
     elif not os.path.isdir(steam_system_path):
         STEAM_PATH = steam_flatpak_apps_path
         IS_FLATPAK = True
     elif not os.path.isdir(steam_system_path) and not os.path.isdir(steam_flatpak_path):
-        print("You don't have Steam client installed! Please install first.")
+        print(f"{Style.FAIL}You don't have Steam client installed! Please install first.{Style.END}")
         sys.exit(1)
 
 
@@ -53,10 +64,10 @@ def proton_sources():
 def check_version():
     ver = sys.version_info
     if ver[0] < 3:
-        print("Python 2 is not supported.")
+        print(f"{Style.FAIL}Python 2 is not supported.{Style.END}")
         sys.exit(1)
     elif ver[1] < 8:
-        print("Python 3.7 and under are not supported.\nIf your distro only offers older version of python please use pyenv")
+        print(f"{Style.FAIL}Python 3.7 and under are not supported.\nIf your distro only offers older version of python please use pyenv.{Style.END}")
         sys.exit(1)
 
 
@@ -107,12 +118,12 @@ def select_proton_version():
 
     li = proton_sources()
     if len(li) < 1:
-        print("Looks like there's no Proton installed. Please install it first.")
+        print(f"{Style.FAIL}Looks like there's no Proton installed. Please install it first.{Style.END}")
         sys.exit(1)
     elif len(li) == 1:
-        i = ask(f"Select {li[0]['name']}?")
+        i = ask(f"{Style.HEADER}Select {li[0]['name']}?{Style.END}")
         if not i:
-            print("Cancelled")
+            print(f"{Style.OKCYAN}Cancelled{Style.END}")
             sys.exit(0)
         else:
             write(li[0])
@@ -122,13 +133,13 @@ def select_proton_version():
         for i in fil:
             print(f"{index} - {fil[index]}")
             index+=1
-        print("Detected multiple Proton installers. Type the following index to select Proton you want to use")
+        print(f"{Style.HEADER}Detected multiple Proton installers. Type the following index to select Proton you want to use{Style.END}")
         while True:
             try:
                 num = input("> ")
                 realnum = int(num)
                 chosen_proton = li[realnum]
-                print(f"You have selected {chosen_proton['name']}!")
+                print(f"{Style.OKGREEN}You have selected {chosen_proton['name']}!{Style.END}")
                 write(chosen_proton)
                 break
             except KeyboardInterrupt:
@@ -139,13 +150,13 @@ def select_proton_version():
 
 def enable_RPC():
     create_local_if_not_exists()
-    h = ask("Do you want to enable support for Discord Rich Presence?")
+    h = ask(f"{Style.HEADER}Do you want to enable support for Discord Rich Presence?{Style.END}")
     if not h:
         return
     else:
         local_path = HOME + "/.local/share/proton-cli"
         exe = os.path.join(local_path, "winediscordipcbridge.exe")
-        print("Downloading winediscordipcbridge.exe...")
+        print(f"{Style.OKBLUE}Downloading winediscordipcbridge.exe...{Style.END}")
         request.urlretrieve(
             "https://github.com/0e4ef622/wine-discord-ipc-bridge/releases/download/v0.0.2/winediscordipcbridge.exe", exe)
         config = get_config()
@@ -181,7 +192,7 @@ def check_path():
     p = os.environ["PATH"].split(os.pathsep)
     if not f"{HOME}/.local/bin" in p:
         confirm = ask(
-            f"Do you want to add {HOME}/.local/bin to the PATH env? This will allow to use commands in Terminal.")
+            f"{Style.HEADER}Do you want to add {HOME}/.local/bin to the PATH env? This will allow to use commands in Terminal.{Style.END}")
         if not confirm:
             print("Ok. Don't forget to set the PATH manually!")
             return
@@ -216,11 +227,11 @@ if __name__ == "__main__":
 proton-cli     - Run Proton in a terminal
 proton-config  - Change settings for Proton CLI!
 
-The configuration file can be found in: {HOME}/.config/proton-cli/config.json
-The binary files can be found in: {HOME}/.local/bin
-The local files can be found in: {HOME}/.local/share/proton-cli
+The configuration file can be found in: {Style.BOLD}{HOME}/.config/proton-cli/config.json{Style.END}
+The binary files can be found in: {Style.BOLD}{HOME}/.local/bin/{Style.END}
+The local files can be found in: {Style.BOLD}{HOME}/.local/share/proton-cli{Style.END}
 
-To uninstall this app simply use proton-config uninstall
+To uninstall this app simply use {Style.UNDERLINE}proton-config uninstall{Style.END}
 """)
     elif arg == "copy":
         install()

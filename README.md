@@ -18,15 +18,15 @@ Step 3 (optional): To update the script, go to the repository you cloned, then `
 To run proton in terminal, simply use `proton-cli <path/to/app.exe>`
 
 To configure Proton CLI, there are two ways:<br>
-Use `proton-config` to edit configuration.
+* Use `proton-config` to edit configuration.
 
-Edit with Text Editor in `~/.config/proton-cli/config.json` (not recommend, do it if you know what you're doing.)
+* Edit with Text Editor in `~/.config/proton-cli/config.json` (not recommend, do it if you know what you're doing.)
 
 # Troubleshooting
 Open a new issue related about this and we will try to fix.
 
 # Acknowledgements
-* [Simple-term-menu](https://github.com/IngoMeyer441/simple-term-menu) - Used for selecting Proton version
+
 * [wine discord ipc bridge](https://github.com/0e4ef622/wine-discord-ipc-bridge) - Used to make RPC working with wine/proton.
 
 # Notes

@@ -183,6 +183,8 @@ def install():
     if not os.path.isdir(bins):
         print("Failed to install: Cannot find bin directory.")
         sys.exit(2)
+    if not os.path.isdir(dest_bins):
+        os.mkdir(dest_bins)
     for files in os.listdir(bins):
         shutil.copy2(os.path.join(bins, files), dest_bins)
     print("Done!")

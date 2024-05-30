@@ -7,6 +7,7 @@ A Python script for making your current installed Proton able to use in a termin
 * Necessary enviorments to make Proton able to run in Terminal 
 * Discord RPC support. It will ask during installation.
 * Can switch Proton version.
+* Supports Steam installed with [Flatpak](https://www.flatpak.org/) 
 
 # Setting up
 Step 1: Clone this repository using `git clone https://github.com/raluvy95/proton-cli`<br>
